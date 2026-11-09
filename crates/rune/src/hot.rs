@@ -1,5 +1,8 @@
-//! Desktop development only. Use `scripts/rune-dev`: it validates edits before dx sees them.
+//! Development only. The Rune launchers validate edits before dx sees them.
 //! Long-lived state belongs to Runtime, never to tip-crate statics or cached view trait objects.
+
+#[cfg(all(target_os = "ios", target_abi = "sim"))]
+mod simulator;
 
 use std::path::Path;
 use std::panic::{AssertUnwindSafe, catch_unwind};
@@ -201,13 +204,10 @@ impl Hub {
 
 fn hub() -> &'static Hub {
     static HUB: OnceLock<Hub> = OnceLock::new();
-    let mut fresh = false;
-    let hub = HUB.get_or_init(|| { fresh = true; Hub::default() });
-    if fresh {
-        subsecond::register_handler(Arc::new(|| hub.patched()));
-        connect();
-    }
-    hub
+    HUB.get_or_init(|| {
+        subsecond::register_handler(Arc::new(|| hub().patched()));
+        Hub::default()
+    })
 }
 
 fn connect() {
@@ -246,7 +246,21 @@ pub(crate) struct Session {
 }
 
 impl Session {
-    pub(crate) fn connect(wake: Waker) -> Self { Self::join(hub(), wake) }
+    pub(crate) fn connect(wake: Waker) -> Self {
+        let session = Self::join(hub(), wake);
+        static CONNECTED: OnceLock<()> = OnceLock::new();
+        CONNECTED.get_or_init(|| {
+            #[cfg(all(target_os = "ios", target_abi = "sim"))]
+            if simulator::start() { return; }
+            connect();
+        });
+        session
+    }
+
+    #[cfg(all(target_os = "ios", target_abi = "sim"))]
+    pub(crate) fn presented(&self) {
+        simulator::presented(self.seen);
+    }
 
     fn join(hub: &'static Hub, wake: Waker) -> Self {
         let id = hub.next.fetch_add(1, Ordering::Relaxed);

@@ -173,6 +173,9 @@ def parse(argv):
     parser.add_argument("--patch", action="append", default=[], metavar="GLOB",
                         help="files, relative to the app crate, whose fn bodies patch live (repeatable; ** spans directories)")
     parser.add_argument("--port", type=int, default=18744)
+    parser.add_argument("--ios-simulator", metavar="UDID", help="patch a booted iOS simulator headlessly (local external crate)")
+    parser.add_argument("--sim-microphone", action="store_true", help="grant microphone access to the simulator hot bundle")
+    parser.add_argument("--prepare", metavar="SCRIPT", help="in simulator mode, build the shell static archive at the supplied path")
     parser.add_argument("--desk", action="store_true", help="run the app on this Mac and compile on --build-host")
     parser.add_argument("--local", action="store_true", default=bool(os.environ.get("RUNE_DEV_LOCAL")),
                         help="compile and run here; a restart-needed edit rebuilds and relaunches (env RUNE_DEV_LOCAL)")
@@ -187,6 +190,10 @@ def parse(argv):
         parser.error("--manifest-path needs at least one --patch GLOB; every other file restarts")
     if opts.example and (opts.patch or opts.package or opts.bin or opts.features):
         parser.error("--patch, --package, --bin and --features are for --manifest-path")
+    if opts.ios_simulator and (not opts.local or not opts.manifest_path):
+        parser.error("--ios-simulator requires --local and --manifest-path")
+    if (opts.prepare or opts.sim_microphone) and not opts.ios_simulator:
+        parser.error("--prepare and --sim-microphone require --ios-simulator")
     if opts.local and opts.desk:
         parser.error("--local runs everything here; --desk compiles on --build-host")
     opts.parser = parser
@@ -864,7 +871,10 @@ def run(args):
             EXTERNAL = external_layout(opts.manifest_path)
             crate = EXTERNAL.crate
         # Outside any checkout: Cargo would take an enclosing [workspace] for the app's.
-        mirror = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "rune-dev" / hashlib.sha256(f"{ROOT}\0{crate}".encode()).hexdigest()[:12]
+        identity = f"{ROOT}\0{crate}"
+        if opts.ios_simulator:
+            identity += f"\0ios\0{opts.manifest_path.resolve()}\0{opts.ios_simulator}"
+        mirror = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "rune-dev" / hashlib.sha256(identity.encode()).hexdigest()[:12]
         name, has_profile = crate_settings(source(crate), source("external"))
         package = opts.package or name
         cargo_config = [] if has_profile else PROFILE
@@ -873,6 +883,15 @@ def run(args):
     baseline = inputs(cache)
     if crate and not any(p.startswith(crate + "/") for p in baseline):
         parser.error(f"no files staged for {crate}")
+    if opts.ios_simulator:
+        import fcntl
+        mirror.mkdir(parents=True, exist_ok=True)
+        # Held until this run returns. Two watchers must never write the same compiler mirror.
+        mirror_lock = (mirror / ".simulator.lock").open("a")
+        try:
+            fcntl.flock(mirror_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise SystemExit("rune-hot: this simulator source mirror already has a watcher") from None
     # Remove stale source files, but retain compiler artifacts between invocations.
     old_manifest = mirror / ".inputs.json"
     if old_manifest.exists():
@@ -889,6 +908,14 @@ def run(args):
     # Workspace excludes reference this independent tool; Cargo needn't see its source.
     dx = Path(os.environ.get("RUNE_DX", str(Path.home() / ".cargo/bin/dx")))
     if not dx.exists(): parser.error("install dioxus-cli 0.7.10 (the Deno dx command is unrelated)")
+    if opts.ios_simulator:
+        from rune_ios_hot import run_simulator
+        with mirror_lock:
+            try:
+                return run_simulator(opts, dx, package, cargo_config, app_args, env, mirror, crate,
+                                     allowed, guard, baseline, lambda: inputs(cache), Restart)
+            except RuntimeError as error:
+                raise SystemExit(f"rune-hot: {error}") from None
     park = mirror / ".rune-hot-park"
     park.unlink(missing_ok=True)
     if opts.desk:

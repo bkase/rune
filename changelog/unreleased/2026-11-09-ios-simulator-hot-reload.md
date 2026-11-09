@@ -1,0 +1,1 @@
+- **Native Rust hot reload on the iOS Simulator.** The guarded `rune-hot --ios-simulator UDID` launcher compiles arm64 simulator patches and installs them into an opt-in embedded Rune host. View and handler edits rebuild the live tree while retaining the process, app state, and keyed motion. The launcher acknowledges the first presented frame and rebuilds for incompatible edits.

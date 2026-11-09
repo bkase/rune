@@ -2852,7 +2852,31 @@ callback the same way, keeping whatever it changed before the panic. A later pat
 still attempted. Handler-closure panics are not caught; neither are panics in the
 original fallbacks. This recovery requires Rust's unwinding panic mode and does
 not undo interior-mutability side effects performed by a view before it panics.
-Physical iOS devices are unsupported by this backend.
+### iOS Simulator
+
+The `hot` feature also supports embedded `LayerHost` apps on the arm64 iOS Simulator.
+The guarded launcher uses Dioxus CLI 0.7.10 to build the base executable and incremental
+Rust dylibs. It uses `simctl` for installation and launch and a local simulator sandbox
+mailbox for patch delivery. The same runtime replaces view and handler code while
+retaining state and keyed motion. The launcher prints the process ID and elapsed time
+when the first patched frame is presented.
+
+```sh
+scripts/rune-hot --manifest /path/to/app/Cargo.toml --patch 'src/ui/**/*.rs' \
+  --ios-simulator "$SIMULATOR_ID" [--features APP_FEATURES] \
+  [--prepare ios/prepare-hot.sh] [--sim-microphone] [-- APP ARGS]
+```
+
+Build a Rust binary entry point for the simulator so Subsecond can resolve `main`.
+The guarded Rust view code belongs to the binary's compilation unit. With a Swift
+shell, `--prepare` runs a shell script from the staged app and supplies the absolute
+path where it should write the shell's static archive. The app's Dioxus bundle
+identifier must end in `.hot` to keep its sandbox separate from a normal install.
+`--sim-microphone` grants microphone access to that development bundle.
+
+The simulator must be foregrounded to acknowledge a presented frame. Incompatible
+edits rebuild and relaunch the development bundle. Physical iPhones require the
+separate split-process architecture described in [the plan](../../PLAN.md).
 
 ### Headless input and patch acknowledgement
 

@@ -221,6 +221,10 @@ impl<S: 'static> LayerHost<S> {
         }
         self.renderer.submit(&self.gpu.queue, encoder);
         self.gpu.queue.present(frame);
+        #[cfg(all(feature = "hot", target_os = "ios", target_abi = "sim"))]
+        if let Some(session) = &self.rt.hot {
+            session.presented();
+        }
 
         let cpu_us = t0.elapsed().as_micros() as u64;
         let wake_after_secs = self.rt.wake_deadline().and_then(|d| {
