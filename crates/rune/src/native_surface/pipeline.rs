@@ -75,7 +75,7 @@ pub struct SurfaceRenderer {
     srgb_blend: bool,
     /// The owning `Renderer`'s uploads, when it has one; queue writes otherwise.
     staging: Option<rune_staging::Staging>,
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", target_os = "ios"))]
     importer: Option<macos::Importer>,
     #[cfg(target_os = "windows")]
     shared: Option<windows::Importer>,
@@ -163,7 +163,7 @@ impl SurfaceRenderer {
             draws: Vec::new(),
             srgb_blend: false,
             staging: None,
-            #[cfg(target_os = "macos")]
+            #[cfg(any(target_os = "macos", target_os = "ios"))]
             importer: None,
             #[cfg(target_os = "windows")]
             shared: None,
@@ -338,7 +338,7 @@ impl SurfaceRenderer {
             count += 1;
         }
         self.draws.truncate(count);
-        #[cfg(target_os = "macos")]
+        #[cfg(any(target_os = "macos", target_os = "ios"))]
         if let Some(i) = &self.importer {
             i.flush();
         }
@@ -369,7 +369,7 @@ impl SurfaceRenderer {
                 };
                 [a, b]
             }
-            #[cfg(target_os = "macos")]
+            #[cfg(any(target_os = "macos", target_os = "ios"))]
             Source::PixelBuffer(b) => {
                 if self.importer.is_none() {
                     self.importer = Some(macos::Importer::new(device)?);
@@ -398,7 +398,7 @@ impl SurfaceRenderer {
     pub(super) fn live_planes(&self) -> usize {
         self.importer.as_ref().map_or(0, |i| i.live_planes.load(std::sync::atomic::Ordering::SeqCst))
     }
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", target_os = "ios"))]
     pub(crate) fn draws_nothing(&self) -> bool {
         self.draws.is_empty()
     }

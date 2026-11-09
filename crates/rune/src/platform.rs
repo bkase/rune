@@ -10,7 +10,7 @@ pub mod embed;
 pub(crate) mod layer_shell;
 #[cfg(target_os = "macos")]
 pub(crate) mod macos;
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "ios"))]
 pub(crate) mod main_queue;
 #[cfg(all(target_os = "linux", feature = "dbus"))]
 pub(crate) mod portal_appearance;

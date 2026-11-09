@@ -1942,7 +1942,7 @@ tap.play();
 - **Request headers**: `Player::request(url).header("Authorization", token).audio()` (or
   `.video()`) opens a URL with HTTP headers on every request, for media behind
   authentication. Header values never appear in `Debug` output.
-- **Video frames** (macOS): AVPlayer + AVPlayerItemVideoOutput hand IOSurface-backed buffers
+- **Video frames** (macOS and iOS): AVPlayer + AVPlayerItemVideoOutput hand IOSurface-backed buffers
   to the element's `NativeSurface` for each display-link target, without a copy. Frames are
   requested only while a drawn video plays or seeks; paused, ended and off-screen videos draw
   nothing. `play` and state changes re-run views that read the state.
@@ -1975,6 +1975,9 @@ tap.play();
   follows the virtual clock of the runtime on the thread that made it, as a video's does
   (pause, seek, rate, loop, and the end, which wakes the clip's waker), with no sound. `--tree` adds a `video` object (`kind`, `state`, `time`,
   `duration`, `size`, `rate`, `looping`, `muted`, `error`) to video elements.
+- **Embedded Apple apps**: initialize the `embed::LayerHost` on the main thread and call
+  `with_native_media()` to enable AVFoundation. The host owns its scene lifecycle and
+  pauses presentation while the app is in the background.
 - **Other platforms**: every clip reports `Failed("video playback isn't supported on this
   platform yet")` (or the audio equivalent), and video draws a neutral grey placeholder.
 
@@ -2021,7 +2024,11 @@ let clip = rune::Player::audio(note.path);
   `com.apple.security.device.microphone`). An unsigned or ad-hoc signed build may be denied
   without a prompt, or lose its grant when its signature changes. An unbundled binary run from
   a terminal is attributed to the terminal, which asks on its behalf.
-- **Backend** (macOS): AVAudioRecorder on a thread of its own. It encodes AAC (or writes WAV),
+- **iOS setup**: call `LayerHost::with_native_media()` and include
+  `NSMicrophoneUsageDescription` in the app's Info.plist. Choose a recording-capable
+  `AVAudioSession` category, such as `.playAndRecord`, before starting the recorder.
+  The host controls audio session policy and decides how to handle backgrounding.
+- **Backend** (macOS and iOS): AVAudioRecorder on a thread of its own. It encodes AAC (or writes WAV),
   meters the input and finalizes the file, so Rune never touches samples. The thread polls
   its meters 30 times a second while recording. If the input device goes away or the default
   input changes mid-recording, the state becomes `Interrupted(reason)`: `stop` still returns

@@ -32,6 +32,7 @@ unsafe extern "C" {
     static AVLinearPCMIsNonInterleaved: &'static NSString;
 }
 
+#[cfg(target_os = "macos")]
 #[repr(C)]
 struct PropertyAddress {
     selector: u32,
@@ -39,6 +40,7 @@ struct PropertyAddress {
     element: u32,
 }
 
+#[cfg(target_os = "macos")]
 #[link(name = "CoreAudio", kind = "framework")]
 unsafe extern "C" {
     fn AudioObjectGetPropertyData(
@@ -52,6 +54,7 @@ unsafe extern "C" {
 }
 
 /// The system's default input device, if there is one.
+#[cfg(target_os = "macos")]
 fn default_input() -> Option<u32> {
     let address = PropertyAddress {
         selector: u32::from_be_bytes(*b"dIn "), // kAudioHardwarePropertyDefaultInputDevice
@@ -62,6 +65,13 @@ fn default_input() -> Option<u32> {
     // kAudioObjectSystemObject is 1.
     let status = unsafe { AudioObjectGetPropertyData(1, &address, 0, std::ptr::null(), &mut size, (&raw mut device).cast()) };
     (status == 0 && device != 0).then_some(device)
+}
+
+#[cfg(target_os = "ios")]
+fn default_input() -> Option<u32> {
+    let session: Retained<AnyObject> = unsafe { msg_send![class!(AVAudioSession), sharedInstance] };
+    let available: Bool = unsafe { msg_send![&*session, isInputAvailable] };
+    available.as_bool().then_some(1)
 }
 
 pub(super) fn permission() -> MicPermission {
@@ -116,7 +126,7 @@ pub(super) fn preflight() -> Result<(), String> {
         let value: Option<Retained<AnyObject>> = msg_send![&*bundle, objectForInfoDictionaryKey: &*key];
         match value {
             Some(_) => Ok(()),
-            None => Err("the app's Info.plist has no NSMicrophoneUsageDescription, so macOS won't let it record".into()),
+            None => Err("the app's Info.plist has no NSMicrophoneUsageDescription, so the system won't let it record".into()),
         }
     }
 }

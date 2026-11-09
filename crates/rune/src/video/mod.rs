@@ -23,19 +23,19 @@
 //! on the thread that made it, from the first frame or edit after `play`: pausing, seeking,
 //! rate, looping and the end (which wakes the app's waker) all as in a window, silently.
 //!
-//! Other platforms report [`PlayerState::Failed`] and draw a neutral placeholder for video.
+//! Outside macOS and iOS, platforms report [`PlayerState::Failed`] and draw a neutral placeholder for video.
 
-#[cfg(all(target_os = "macos", feature = "ogg-audio"))]
+#[cfg(all(any(target_os = "macos", target_os = "ios"), feature = "ogg-audio"))]
 mod foreign;
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "ios"))]
 mod macos;
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "ios"))]
 use macos as backend;
 #[cfg(all(test, target_os = "macos"))]
 pub(crate) use macos::test_frames;
-#[cfg(not(target_os = "macos"))]
+#[cfg(not(any(target_os = "macos", target_os = "ios")))]
 mod unsupported;
-#[cfg(not(target_os = "macos"))]
+#[cfg(not(any(target_os = "macos", target_os = "ios")))]
 use unsupported as backend;
 
 use crate::native_surface::{ByteFrame, ColorInfo, Format, NativeSurface};

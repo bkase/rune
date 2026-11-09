@@ -7,7 +7,7 @@
 mod gpu_tests;
 #[cfg(test)]
 mod place_tests;
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "ios"))]
 pub mod macos;
 mod pipeline;
 pub(crate) mod place;
@@ -61,7 +61,7 @@ pub struct ByteFrame {
 
 pub(crate) enum Source {
     Bytes(ByteFrame),
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", target_os = "ios"))]
     PixelBuffer(macos::PixelBuffer),
     #[cfg(target_os = "windows")]
     Shared(windows::SharedTexture),
@@ -94,7 +94,7 @@ impl Orient {
     /// From an affine transform taking buffer to upright coordinates (`x' = a x + c y`,
     /// `y' = b x + d y`), such as AVFoundation's `preferredTransform`. Anything but a quarter
     /// turn or flip is drawn upright as is.
-    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+    #[cfg_attr(not(any(target_os = "macos", target_os = "ios")), allow(dead_code))]
     pub fn from_transform(a: f64, b: f64, c: f64, d: f64) -> Self {
         let m = [a, b, c, d].map(|v| v.round());
         let unit = m.iter().all(|v| v.abs() <= 1.0) && m.iter().zip([a, b, c, d]).all(|(r, v)| (r - v).abs() < 1e-3);
@@ -257,11 +257,11 @@ impl NativeSurface {
         });
         Ok(())
     }
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", target_os = "ios"))]
     pub fn push(&self, buffer: macos::PixelBuffer, frame_id: u64) -> Result<(), String> {
         self.push_oriented(buffer, frame_id, Orient::UP)
     }
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", target_os = "ios"))]
     pub(crate) fn push_oriented(&self, buffer: macos::PixelBuffer, frame_id: u64, orient: Orient) -> Result<(), String> {
         let (size, format, color) = buffer.info()?;
         self.replace(Frame { id: frame_id, source: Source::PixelBuffer(buffer), size, format, color, orient });

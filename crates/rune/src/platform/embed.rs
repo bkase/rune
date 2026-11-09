@@ -126,6 +126,15 @@ impl<S: 'static> LayerHost<S> {
         self
     }
 
+    /// Enables AVFoundation playback and microphone capture in this process. Use this on
+    /// the native main thread before creating any media handles. Leave it off for offscreen
+    /// replay hosts. On iOS, the embedding app owns AVAudioSession policy and must supply
+    /// NSMicrophoneUsageDescription and a recording-capable session category.
+    pub fn with_native_media(self) -> Self {
+        crate::video::enable_playback();
+        self
+    }
+
     pub fn runtime(&self) -> &Runtime<S> {
         &self.rt
     }

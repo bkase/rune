@@ -1,0 +1,1 @@
+- **Native media in embedded iOS apps.** A UIKit or SwiftUI host can opt in to AVFoundation audio and video playback and microphone capture with `LayerHost::with_native_media()`. The embedding app chooses its AVAudioSession category and declares microphone usage in its Info.plist. Offscreen runtimes keep virtual media by default.

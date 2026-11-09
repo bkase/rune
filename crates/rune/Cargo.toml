@@ -129,6 +129,19 @@ wgpu-naga-bridge = { version = "~30.0.1", optional = true }
 wgpu = { version = "~30.0.1", default-features = false, features = ["custom"] }
 objc2-foundation-video = { package = "objc2-foundation", version = "0.3", default-features = false, features = ["std", "NSArray", "NSData", "NSDictionary", "NSError", "NSObject", "NSRange", "NSString", "NSURL", "NSURLConnection", "NSURLRequest", "NSURLResponse"] }
 
+objc2-core-video = { version = "0.3", features = ["CVPixelBufferIOSurface", "objc2-io-surface"] }
+# Unused by name: its default features give IOSurfaceRef the CF `Type` impl objc2-core-video needs.
+objc2-io-surface = "0.3"
+block2-metal = { package = "block2", version = "0.6" }
+# Video playback (`Video`): AVPlayer, its video output and the poster/headless image generator.
+objc2-av-foundation = { version = "0.3", default-features = false, features = ["std", "AVAsset", "AVAssetImageGenerator", "AVAssetTrack", "AVMediaFormat", "AVPlayer", "AVPlayerItem", "AVPlayerItemOutput", "objc2-core-foundation", "objc2-core-graphics", "objc2-core-media", "objc2-core-video"] }
+objc2-core-media = { version = "0.3", default-features = false, features = ["std", "CMTime"] }
+objc2-core-graphics = { version = "0.3", default-features = false, features = ["std", "CGBitmapContext", "CGColorSpace", "CGContext", "CGImage"] }
+
+# Ogg and WebM audio (`ogg-audio`): pure-Rust demuxers and decoders.
+symphonia = { version = "0.5.5", optional = true, default-features = false, features = ["ogg", "vorbis", "mkv"] }
+opuscule = { version = "0.2.2", optional = true }
+
 [target.'cfg(target_os = "macos")'.dependencies]
 accesskit_macos = { version = "0.27.2", optional = true }
 # Names for the interaction watchdog's stack samples (`tooling::interaction::stack`).
@@ -139,17 +152,6 @@ objc2 = "0.5.2"
 block2 = "0.5"
 objc2-foundation = { version = "0.2.2", features = ["NSArray", "NSAttributedString", "NSData", "NSDictionary", "NSError", "NSGeometry", "NSObject", "NSRange", "NSValue", "NSProcessInfo", "NSString", "NSThread", "NSURL", "NSUserDefaults"] }
 objc2-app-kit = { version = "0.2.2", features = ["NSApplication", "NSButton", "NSCell", "NSControl", "NSEvent", "NSMenu", "NSMenuItem", "NSResponder", "NSRunningApplication", "NSView", "NSWindow", "NSColor", "NSGraphics", "NSPanel", "NSScreen", "NSPasteboard", "NSPasteboardItem", "NSDragging", "NSDraggingItem", "NSDraggingSession", "NSGraphicsContext", "NSImage", "NSImageRep", "NSBitmapImageRep", "NSAttributedString", "NSSpellChecker"] }
-objc2-core-video = { version = "0.3", features = ["CVPixelBufferIOSurface", "objc2-io-surface"] }
-# Unused by name: its default features give IOSurfaceRef the CF `Type` impl objc2-core-video needs.
-objc2-io-surface = "0.3"
-block2-metal = { package = "block2", version = "0.6" }
-# Video playback (`Video`): AVPlayer, its video output and the poster/headless image generator.
-objc2-av-foundation = { version = "0.3", default-features = false, features = ["std", "AVAsset", "AVAssetImageGenerator", "AVAssetTrack", "AVMediaFormat", "AVPlayer", "AVPlayerItem", "AVPlayerItemOutput", "objc2-core-foundation", "objc2-core-graphics", "objc2-core-media", "objc2-core-video"] }
-objc2-core-media = { version = "0.3", default-features = false, features = ["std", "CMTime"] }
-objc2-core-graphics = { version = "0.3", default-features = false, features = ["std", "CGBitmapContext", "CGColorSpace", "CGContext", "CGImage"] }
-# Ogg and WebM audio (`ogg-audio`): pure-Rust demuxers and decoders.
-symphonia = { version = "0.5.5", optional = true, default-features = false, features = ["ogg", "vorbis", "mkv"] }
-opuscule = { version = "0.2.2", optional = true }
 
 [target.'cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))'.dependencies]
 raw-window-handle = "0.6"
